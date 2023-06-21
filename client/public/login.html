@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+    <style>
+        *{box-sizing: border-box;}
+        body{
+            background-color: #181616;
+            width: 100%;
+            height: 100%;
+        }
+
+        form{
+            background-color: white;
+            max-width: 500px;
+            width: 70%;
+            padding: 20px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%);
+        }
+
+        form h3{
+            text-align: center;
+            color: #181616;
+        }
+
+        form input[type=text],
+        form input[type=password]{
+            width: 100%;
+            height: 45px;
+            border: 1px solid #ccc;
+            padding-left: 10px;
+            margin: 10px 0;
+        }
+
+        form input[type=submit]{
+            width: 100%;
+            height: 30px;
+            cursor: pointer;
+            background-color: #181616;
+            color: white;
+            border: 0;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        form input[type=submit]:hover{
+            background-color: #3A3636;
+        }
+
+        a{
+            color: #181616;
+            display: block;
+            text-align: center;
+        }
+            
+    </style>
+</head>
+<body>
+    
+    <form action="/lobby.html" onsubmit="logar()">
+
+        <h3>Login</h3>
+        <input type="text" placeholder="Username" id="login">
+        <input type="password" placeholder="Senha" id="senha">
+        <input type="submit">
+        <a href="signup.html">Ainda não possui cadastro? Sign up</a>
+        
+
+    </form>
+
+    <script>
+
+        const serverSocket = io('ws://localhost:3000')
+
+        function logar(){
+            let login = document.getElementById('login').value;
+            let senha = document.getElementById('senha').value;
+
+            serverSocket.emit('tentarLogin', {login: login, senha:senha})
+            serverSocket.on('loginSucesso', () => {
+                serverSocket.emit('entrar', {nome: login})
+                return true
+            })
+            serverSocket.on('loginFalhou', () => {
+                return false
+                alert('Usuario e/ou senha incorretos')
+            })
+        }
+    </script>
+
+</body>
+</html>

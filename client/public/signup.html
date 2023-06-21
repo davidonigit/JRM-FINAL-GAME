@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+
+    <style>
+        *{box-sizing: border-box;}
+        body{
+            background-color: #181616;
+            width: 100%;
+            height: 100%;
+        }
+
+        form{
+            background-color: white;
+            max-width: 500px;
+            width: 70%;
+            padding: 20px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%);
+        }
+
+        form h3{
+            text-align: center;
+            color: #181616;
+        }
+
+        form input[type=text],
+        form input[type=password]{
+            width: 100%;
+            height: 45px;
+            border: 1px solid #ccc;
+            padding-left: 10px;
+            margin: 10px 0;
+        }
+
+        form input[type=submit]{
+            width: 100%;
+            height: 30px;
+            cursor: pointer;
+            background-color: #181616;
+            color: white;
+            border: 0;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        form input[type=submit]:hover{
+            background-color: #3A3636;
+        }
+
+        a{
+            color: #181616;
+            display: block;
+            text-align: center;
+        }
+            
+    </style>
+</head>
+<body>
+    
+    <form>
+
+        <h3>Sign Up</h3>
+        <input type="text" placeholder="Username" id="username">
+        <input type="text" placeholder="Email" id="email">
+        <input type="password" placeholder="Senha" id="senha">
+        <input type="submit" value="Criar conta" onclick="criarConta(); return false">
+        <a href="login.html">Já possui uma conta? Login</a>
+        
+
+    </form>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+
+    <script src="/client.js"></script>
+
+    <script>
+        /*
+        const serverSocket = io('ws://localhost:3000')
+
+        
+        function criarConta(){
+            let username = document.getElementById('username').value;
+            let email = document.getElementById('email').value;
+            let senha = document.getElementById('senha').value;
+            serverSocket.emit('criarConta', {username: username, email:email, senha:senha})
+        }
+
+        serverSocket.on('cadastroSucesso', () => {
+            alert('Cadastrado com sucesso')
+            location.href = 'login.html'
+        })
+        serverSocket.on('cadastroFalhou', () => {
+            alert('Usuario ou email já utilizados')
+        })
+        */
+    </script>
+    
+
+</body>
+</html>
