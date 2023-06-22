@@ -37,13 +37,13 @@ io.on('connection', (clientSocket) => {
   console.log('usuario conectado')
   console.log(clientSocket.id)
 
-  /*
+  
   clientSocket.on('disconnect', () => {
     let index = players.indexOf(clientSocket.id)
     players.splice(index,1)
     console.log('usuario desconectado')
   })
-  */
+  
 
   clientSocket.emit('players', players);
   
@@ -91,7 +91,7 @@ io.on('connection', (clientSocket) => {
 
   clientSocket.on('enviarMensagem', (data) => {
     const remetente = findBySocketId(clientSocket.id);
-    const msg = `${remetente.nome}: ${data.texto}`;
+    const msg = `<strong>${remetente.nome}</strong>: ${data.texto}`;
     io.emit('postarMensagem', msg)
   })
 }
@@ -99,7 +99,7 @@ io.on('connection', (clientSocket) => {
 
 // ficar mandando a lista de player para todo mundo a cada 1 segundo
 setInterval(() => {
-  //io.emit('players', (players))
+  io.emit('players', players)
   console.log(players)
 }, 10000)
 

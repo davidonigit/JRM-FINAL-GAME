@@ -64,16 +64,18 @@
 </head>
 <body>
     
-    <form action="/lobby.html" onsubmit="logar()">
+    <form>
 
         <h3>Login</h3>
-        <input type="text" placeholder="Username" id="login">
-        <input type="password" placeholder="Senha" id="senha">
-        <input type="submit">
+        <input type="text" placeholder="Username" id="login" required>
+        <input type="password" placeholder="Senha" id="senha" required>
+        <input type="submit" onclick="logar(); return false">
         <a href="signup.html">Ainda não possui cadastro? Sign up</a>
         
 
     </form>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 
     <script>
 
@@ -83,13 +85,13 @@
             let login = document.getElementById('login').value;
             let senha = document.getElementById('senha').value;
 
-            serverSocket.emit('tentarLogin', {login: login, senha:senha})
+            
+            serverSocket.emit('tentarLogin', {login: login, senha: senha})
             serverSocket.on('loginSucesso', () => {
-                serverSocket.emit('entrar', {nome: login})
-                return true
+                localStorage.setItem('userId', login);
+                location.href = 'lobby.html'
             })
             serverSocket.on('loginFalhou', () => {
-                return false
                 alert('Usuario e/ou senha incorretos')
             })
         }

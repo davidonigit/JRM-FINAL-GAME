@@ -13,6 +13,16 @@
             height: 100%;
         }
 
+        h3{
+            text-align: center;
+            color: white;
+        }
+
+        h4{
+            color: #181616;
+            margin: 0;
+        }
+
         form{
             background-color: white;
             max-width: 500px;
@@ -24,22 +34,24 @@
             transform: translate(-50%,-50%);
         }
 
-        h3{
-            text-align: center;
-            color: white;
-        }
-
-        h4{
-            color: #181616;
-            margin: 0;
-        }
-
-        div{
+        #chat{
             width: 100%;
             height: 300px;
             border: 1px solid #ccc;
             padding-left: 10px;
             margin: 10px 0;
+        }
+
+        #playersBoard{
+            text-align: center;
+            width: 200px;
+            height: 300px;
+            padding: 20px;
+            position: absolute;
+            top: 9%;
+            left: 9%;
+            border: 1px solid #ccc;
+            background-color: white;
         }
 
         form input[type=text]{
@@ -70,20 +82,51 @@
 <body>
     
     <h3>Game Lobby</h3>
-    <form id="chat">
+    <form>
     <h4>Chat global</h2>
-    <div class="mensagens"></div>
+    <span>Bem vindo, </span><span id="meuid"></span><br/>
+    <div id="chat"></div>
     <input type="text" id="mensagem" placeholder="Mensagem">
-    <input type="submit" onclick="enviarMensagem(); return false"></button>
+    <input type="submit" onclick="enviarMensagem(); return false">
     </form>
+    
+    <div id="playersBoard"">
+        <h4>Jogadores Online</h4>
+        <div id="players"></div>
+    </div>
 
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 
-    <script src="/client.js"></script>
     <script>
         const serverSocket = io('ws://localhost:3000')
-        
-        
+
+        const meuIdSpan = document.getElementById('meuid');
+        const chat = document.getElementById('chat')
+        const players = document.getElementById('players')
+
+        const userId = localStorage.getItem('userId');
+        meuIdSpan.innerText = userId;
+        serverSocket.emit('entrar', {nome : userId})
+
+        function enviarMensagem(){
+            const mensagem = document.getElementById('mensagem')
+            let texto = mensagem.value
+            serverSocket.emit('enviarMensagem', {nome : userId, texto: texto})
+            mensagem.value = ''
+        }
+
+        serverSocket.on('postarMensagem', msg => {
+            chat.innerHTML += `<p>${msg}</p>`
+        })
+
+        serverSocket.on('players', (data)=>{
+            players.innerHTML = ''
+
+            for (i=0; i<data.length; i++){
+                let position = data[i].nome
+                players.innerHTML += `<p>${position}</p>`
+            }
+        })
     </script>
 
 </body>
