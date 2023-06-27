@@ -103,6 +103,10 @@ io.on('connection', (clientSocket) => {
 		io.emit('salas', salas)
 		console.log(salas)
 	})
+
+	clientSocket('entrarSala', (data) => {
+		clientSocket.join
+	})
 })
 
 // ficar mandando a lista de player para todo mundo a cada 1 segundo
