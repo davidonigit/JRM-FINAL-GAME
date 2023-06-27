@@ -23,20 +23,19 @@
             margin: 0;
         }
 
-        form{
+        #chatForm{
             background-color: white;
-            max-width: 500px;
-            width: 70%;
-            padding: 20px;
+            width: 450px;
+            padding: 10px;
             position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%,-50%);
+            top: 45px;
+            left: 230px;
+            border: 1px solid #ccc;
         }
 
         #chat{
             width: 100%;
-            height: 300px;
+            height: 360px;
             border: 1px solid #ccc;
             padding-left: 10px;
             margin: 10px 0;
@@ -46,12 +45,29 @@
             text-align: center;
             width: 200px;
             height: 300px;
-            padding: 20px;
+            padding: 10px;
             position: absolute;
-            top: 9%;
-            left: 9%;
+            top: 45px;
+            left: 15px;
             border: 1px solid #ccc;
             background-color: white;
+        }
+
+        #players{
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 90%;
+        }
+
+        #salasBoard{
+            width: 200px;
+            text-align: center;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            position: absolute;
+            left: 695px;
+            top: 45px;
         }
 
         form input[type=text]{
@@ -75,24 +91,50 @@
 
         form input[type=submit]:hover{
             background-color: #3A3636;
-        }     
+        }
+
+        button {
+            width: 70%;
+            height: 20px;
+            cursor: pointer;
+            background-color: #181616;
+            color: white;
+            border: 0;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        button:hover{
+            background-color: #3A3636;
+        }
 
     </style>
 </head>
 <body>
     
     <h3>Game Lobby</h3>
-    <form>
+    <form id="chatForm">
     <h4>Chat global</h2>
     <span>Bem vindo, </span><span id="meuid"></span><br/>
     <div id="chat"></div>
-    <input type="text" id="mensagem" placeholder="Mensagem">
+    <input type="text" id="mensagem" placeholder="Mensagem" required>
     <input type="submit" onclick="enviarMensagem(); return false">
     </form>
     
     <div id="playersBoard"">
         <h4>Jogadores Online</h4>
         <div id="players"></div>
+    </div>
+
+    <div id="salasBoard">
+        <form>
+            <h4>JOGAR</h4><br>
+            <input type="submit" onclick="criarSala(); return false" value="Criar sala">
+        </form>
+        <br>
+        <h4>Salas disponíveis:</h4><br>
+        <div id="salas">
+        </div>
     </div>
 
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
@@ -103,11 +145,18 @@
         const meuIdSpan = document.getElementById('meuid');
         const chat = document.getElementById('chat')
         const players = document.getElementById('players')
+        const salas = document.getElementById('salas')
 
         const userId = localStorage.getItem('userId');
         meuIdSpan.innerText = userId;
-        serverSocket.emit('entrar', {nome : userId})
 
+        // bloqueia jogadores sem login a entrar no lobby
+        if(userId === null){
+            location.href = 'login.html'
+        } else {
+            serverSocket.emit('entrar', {nome : userId})
+        }
+        
         function enviarMensagem(){
             const mensagem = document.getElementById('mensagem')
             let texto = mensagem.value
@@ -127,6 +176,27 @@
                 players.innerHTML += `<p>${position}</p>`
             }
         })
+
+        function criarSala(){
+            let nomeSala = 'Sala de '+userId
+            serverSocket.emit('criarSala', userId)
+            entrarSala(userId)
+        }
+
+        function entrarSala(sala){
+            //serverSocket.join('salaTeste')
+            localStorage.setItem('userRoom', sala);
+            location.href = 'game.html'
+        }
+        
+        serverSocket.on('salas', (data) => {
+            salas.innerHTML = ''
+            for (i=0; i<data.length; i++){
+                let position = data[i]
+                salas.innerHTML += `<button onclick="entrarSala(this.value)" value="${position}">Sala de ${position}</button><br>`
+            }
+        })
+
     </script>
 
 </body>

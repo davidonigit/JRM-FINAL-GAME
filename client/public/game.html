@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game</title>
+</head>
+<body>
+    
+    <h1>AGUARDANDO PLAYERS</h1>
+    <div id="teste">
+
+    </div>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script>
+        const serverSocket = io('ws://localhost:3000')
+        const userId = localStorage.getItem('userId');
+        const userRoom = localStorage.getItem('userRoom')
+        
+        testes = document.getElementById('teste')
+        testes.innerHTML += `<h3>${userId} na sala ${userRoom} </h3>`
+
+        if(userId === null){
+            location.href = 'login.html'
+        } else {
+            serverSocket.emit('entrar', {nome : userId})
+            serverSocket.emit('entrarSala', {sala: userRoom})
+        }
+
+
+
+    </script>
+</body>
+</html>
