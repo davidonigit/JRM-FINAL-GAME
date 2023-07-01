@@ -148,13 +148,18 @@
         const salas = document.getElementById('salas')
 
         const userId = localStorage.getItem('userId');
+        let userRoom = localStorage.getItem('userRoom')
         meuIdSpan.innerText = userId;
 
         // bloqueia jogadores sem login a entrar no lobby
-        if(userId === null){
+        if(userId === 'null'){
             location.href = 'login.html'
         } else {
-            serverSocket.emit('entrar', {nome : userId})
+            if(userRoom != null){
+                localStorage.setItem('userRoom', null);
+            }
+            userRoom = localStorage.getItem('userRoom')
+            serverSocket.emit('entrar', {nome : userId, sala : userRoom})
         }
         
         function enviarMensagem(){
@@ -184,16 +189,16 @@
         }
 
         function entrarSala(sala){
-            //serverSocket.join('salaTeste')
             localStorage.setItem('userRoom', sala);
             location.href = 'game.html'
         }
         
-        serverSocket.on('salas', (data) => {
+        serverSocket.on('salas', data => {
+
             salas.innerHTML = ''
-            for (i=0; i<data.length; i++){
-                let position = data[i]
-                salas.innerHTML += `<button onclick="entrarSala(this.value)" value="${position}">Sala de ${position}</button><br>`
+            for (const sala_id in data) {
+                const sala = data[sala_id]
+                salas.innerHTML += `<button onclick="entrarSala(this.value)" value="${sala.sala}">Sala de ${sala.sala}</button><br>`
             }
         })
 

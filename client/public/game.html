@@ -4,32 +4,180 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game</title>
+
+    <style>
+        body{
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     
     <h1>AGUARDANDO PLAYERS</h1>
-    <div id="teste">
+    <div id="teste"></div>
 
-    </div>
+    <canvas id="canvas"></canvas>
 
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
     <script>
-        const serverSocket = io('ws://localhost:3000')
+        const mapImage = new Image();
+        mapImage.src = '/Tiles.png';
+        const propImage = new Image();
+        propImage.src = 'Props.png'
+        const killerImage = new Image();
+        killerImage.src = 'killer.png';
+        const axeImage = new Image();
+        axeImage.src = 'axe.png';
+
+        const serverSocket = io('ws://localhost:3000');
         const userId = localStorage.getItem('userId');
-        const userRoom = localStorage.getItem('userRoom')
+        let userRoom = localStorage.getItem('userRoom');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
         
         testes = document.getElementById('teste')
         testes.innerHTML += `<h3>${userId} na sala ${userRoom} </h3>`
 
-        if(userId === null){
+        if(userId === 'null'){
             location.href = 'login.html'
+        } else if(userRoom === 'null'){
+            location.href = 'lobby.html'
         } else {
-            serverSocket.emit('entrar', {nome : userId})
-            serverSocket.emit('entrarSala', {sala: userRoom})
+            serverSocket.emit('entrar', {nome : userId, sala : userRoom})
+            serverSocket.emit('entrarSala', {sala: userRoom, nome : userId})
         }
 
+        let groundMap = [[]];
+        let decalMap = [[]];
+        let players = [];
+        let skills = [];
+        const TILE_SIZE = 32;
 
+        serverSocket.on('map', (loadedMap) => {
+            groundMap = loadedMap.ground
+            decalMap = loadedMap.decal
+        })
 
+        serverSocket.on('players', (serverPlayers) => {
+            players = serverPlayers
+        })
+
+        serverSocket.on('skills', (serverSkills) => {
+            skills = serverSkills;
+        })
+
+        const inputs = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+        }
+
+        window.addEventListener('keydown', (e) => {
+            console.log(e.key)
+            if(e.key === 'w'){
+                inputs['up'] = true;
+            } else if(e.key === 's'){
+                inputs['down'] = true;
+            } else if(e.key === 'a'){
+                inputs['left'] = true;
+            } else if(e.key === 'd'){
+                inputs['right'] = true;
+            }
+            serverSocket.emit('inputs', inputs)
+        })
+
+        window.addEventListener('keyup', (e) => {
+            if(e.key === 'w'){
+                inputs['up'] = false;
+            } else if(e.key === 's'){
+                inputs['down'] = false;
+            } else if(e.key === 'a'){
+                inputs['left'] = false;
+            } else if(e.key === 'd'){
+                inputs['right'] = false;
+            }
+            serverSocket.emit('inputs', inputs)
+        })
+
+        window.addEventListener('click', (e) => {
+            const angle = Math.atan2(
+                e.clientY - canvas.height /2,
+                e.clientX - canvas.width /2
+            )
+            serverSocket.emit('skill', angle)
+        })
+
+        function draw(){
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const myPlayer = players.find((player) => player.socketId === serverSocket.id)
+            let cameraX, cameraY = 0
+            if(myPlayer){
+                cameraX = parseInt(myPlayer.x - canvas.width / 2)
+                cameraY = parseInt(myPlayer.y - canvas.height / 2)
+                console.log('PLAYER X', myPlayer.x)
+                console.log('PLAYER Y', myPlayer.y)
+            }
+
+            const TILE_IN_ROW = 25;
+            // ground
+            for (let row = 0; row < groundMap.length; row++) {
+                for (let col = 0; col < groundMap[0].length; col++) {
+                    let { id } = groundMap[row][col];
+                    const imageRow = parseInt(id / TILE_IN_ROW);
+                    const imageCol = id % TILE_IN_ROW;
+                    ctx.drawImage(
+                        mapImage,
+                        imageCol * TILE_SIZE,
+                        imageRow * TILE_SIZE,
+                        TILE_SIZE,
+                        TILE_SIZE,
+                        col * TILE_SIZE - cameraX,
+                        row * TILE_SIZE - cameraY,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    );
+                }
+            }
+
+            // decal
+            for (let row = 0; row < decalMap.length; row++) {
+                for (let col = 0; col < decalMap[0].length; col++) {
+                    let { id } = decalMap[row][col] ?? { id: undefined };
+                    const imageRow = parseInt(id / TILE_IN_ROW);
+                    const imageCol = id % TILE_IN_ROW;
+
+                    ctx.drawImage(
+                        propImage,
+                        imageCol * TILE_SIZE,
+                        imageRow * TILE_SIZE,
+                        TILE_SIZE,
+                        TILE_SIZE,
+                        col * TILE_SIZE - cameraX,
+                        row * TILE_SIZE - cameraY,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    );
+                }
+            }
+
+            // Desenhar players
+            players.forEach(player => {
+                //console.log(player)
+                ctx.drawImage(killerImage, player.x - cameraX, player.y - cameraY)
+            })
+
+            skills.forEach(skill => {
+                ctx.drawImage(axeImage, skill.x - cameraX, skill.y - cameraY)
+            })
+
+            requestAnimationFrame(draw)
+        }
+        draw()
     </script>
 </body>
 </html>
