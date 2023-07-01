@@ -48,6 +48,7 @@
         } else {
             serverSocket.emit('entrar', {nome : userId, sala : userRoom})
             serverSocket.emit('entrarSala', {sala: userRoom, nome : userId})
+            serverSocket.emit('gameReady', {sala: userRoom})
         }
 
         let groundMap = [[]];
@@ -61,11 +62,11 @@
             decalMap = loadedMap.decal
         })
 
-        serverSocket.on('players', (serverPlayers) => {
+        serverSocket.on('playersTick', (serverPlayers) => {
             players = serverPlayers
         })
 
-        serverSocket.on('skills', (serverSkills) => {
+        serverSocket.on('skillsTick', (serverSkills) => {
             skills = serverSkills;
         })
 
@@ -108,7 +109,7 @@
                 e.clientY - canvas.height /2,
                 e.clientX - canvas.width /2
             )
-            serverSocket.emit('skill', angle)
+            serverSocket.emit('skill', {angle: angle, sala: userRoom})
         })
 
         function draw(){

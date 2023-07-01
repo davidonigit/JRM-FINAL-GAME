@@ -20,12 +20,12 @@ let cadastros = [];
 let players = [];
 let salas = {};
 let inputsMap = {};
-let skills = [];
 
 const TICK_RATE = 30;
 const SPEED = 10;
 const RUNNING_SPEED = 11;
 const SKILL_SPEED = 15;
+const SKILL_HITBOX = {width: 16, height: 30}
 const TILE_SIZE = 32;
 const PLAYER_SIZE = 64;
 
@@ -70,80 +70,100 @@ function isColliding(rect1, rect2) {
   }
 
 function tick(delta){
-	players.forEach(player => {
-		const inputs = inputsMap[player.socketId]
-
-		if(inputs.up && inputs.down){
-			inputs.up = false
-			inputs.down = false
-		}
-		if(inputs.left && inputs.right){
-			inputs.left = false
-			inputs.right = false
-		}
-
-		/* Ao se mover para LEFT ou UP:
-		*	estaremos colidindo com os px x:0 ou x:0, por isso basta voltar para a ultima
-		*   posição antes do tile (tilePosition + TILE_SIZE);
-		* 
-		*  Ao se mover para RIGHT ou DOWN:
-		* 	estaremos colidindo 64px a frente (PLAYER_SIZE), por isso deve-se voltar para
-		*   a 64px antes do tile (tilePosition - PLAYER_SIZE);
-		*/
-		
-		if(inputs.up){
-			player.y -= SPEED
-			let colision = isCollidingWithMap(player)
-			if(colision.bool){
-				player.y = colision.positionY + TILE_SIZE
+	for (const sala in salas){
+		const jogo = salas[sala]
+		if(jogo.gameStatus === 1){
+			for (const jogador in jogo.jogadores) {
+				const player = jogo.jogadores[jogador]
+				// console.log('PLAYER', player)
+				const inputs = inputsMap[player.socketId]
+	
+				if(inputs.up && inputs.down){
+					inputs.up = false
+					inputs.down = false
+				}
+				if(inputs.left && inputs.right){
+					inputs.left = false
+					inputs.right = false
+				}
+	
+				/* Ao se mover para LEFT ou UP:
+				*	estaremos colidindo com os px x:0 ou x:0, por isso basta voltar para a ultima
+				*   posição antes do tile (tilePosition + TILE_SIZE);
+				* 
+				*  Ao se mover para RIGHT ou DOWN:
+				* 	estaremos colidindo 64px a frente (PLAYER_SIZE), por isso deve-se voltar para
+				*   a 64px antes do tile (tilePosition - PLAYER_SIZE);
+				*/
+				
+				if(inputs.up){
+					player.y -= SPEED
+					let colision = isCollidingWithMap(player)
+					if(colision.bool){
+						player.y = colision.positionY + TILE_SIZE
+					}
+				} else if(inputs.down){
+					player.y += SPEED
+					let colision = isCollidingWithMap(player)
+					if(colision.bool){
+						player.y = colision.positionY - PLAYER_SIZE
+					}
+				}
+	
+				if(inputs.left){
+					player.x -= SPEED
+					colision = isCollidingWithMap(player)
+					if(colision.bool){
+						player.x = colision.positionX + TILE_SIZE
+					}
+				} else if(inputs.right){
+					player.x += SPEED
+					colision = isCollidingWithMap(player)
+					if(colision.bool){
+						player.x = colision.positionX - PLAYER_SIZE
+					}
+				}
 			}
-		} else if(inputs.down){
-			player.y += SPEED
-			let colision = isCollidingWithMap(player)
-			if(colision.bool){
-				player.y = colision.positionY - PLAYER_SIZE
+	
+			for (const habilidade in jogo.skills) {
+				const skill = jogo.skills[habilidade]
+				// console.log('SKILL', skill)
+				skill.x += Math.cos(skill.angle) * SKILL_SPEED
+				skill.y += Math.sin(skill.angle) * SKILL_SPEED
+				// console.log('SKILL ANGLE', skill.angle)
+				skill.timeLeft -= delta
+	
+				for (const player of players) {
+					if(player.socketId === skill.playerId) continue;
+	
+					if(isColliding(
+						{ //rect1
+						x: skill.x,
+						y: skill.y,
+						w: SKILL_HITBOX.width,
+						h: SKILL_HITBOX.height,
+						},
+						{ //rect2
+						x: player.x,
+						y: player.y,
+						w: PLAYER_SIZE,
+						h: PLAYER_SIZE,
+						}
+					)) {
+						player.x = 0
+						player.y = 0
+						skill.timeLeft = 0
+						break;
+					}
+				}
 			}
+	
+			salas[sala].skills = salas[sala].skills.filter((skill) => skill.timeLeft >= 0)
+			
+			io.to(salas[sala].sala).emit('playersTick', salas[sala].jogadores);
+			io.to(salas[sala].sala).emit('skillsTick', salas[sala].skills)
 		}
-
-		if(inputs.left){
-			player.x -= SPEED
-			colision = isCollidingWithMap(player)
-			if(colision.bool){
-				player.x = colision.positionX + TILE_SIZE
-			}
-		} else if(inputs.right){
-			player.x += SPEED
-			colision = isCollidingWithMap(player)
-			if(colision.bool){
-				player.x = colision.positionX - PLAYER_SIZE
-			}
-		}
-	})
-
-	skills.forEach(skill => {
-		skill.x += Math.cos(skill.angle) * SKILL_SPEED
-		skill.y += Math.sin(skill.angle) * SKILL_SPEED
-		skill.timeLeft -= delta
-
-		for (const player of players) {
-			if(player.socketId === skill.playerId) continue;
-			const distance = Math.sqrt(
-				(player.x + PLAYER_SIZE/2 - skill.x)**2 + 
-				(player.y + PLAYER_SIZE/2 - skill.y)**2
-			)
-			if(distance <= PLAYER_SIZE/2) {
-				player.x = 0
-				player.y = 0
-				skill.timeLeft = 0
-				break;
-			}
-		}
-	})
-
-	skills = skills.filter((skill) => skill.timeLeft >= 0)
-
-	io.emit('players', players);
-	io.emit('skills', skills)
+	}
 }
 
 function findBySocketId(socketId) {
@@ -155,8 +175,6 @@ function addPlayer(nome, socketId, sala) {
 		nome: nome,
 		socketId: socketId,
 		sala: sala,
-		x: 0,
-		y: 0
 	}
 	players.push(player);
 	io.emit('players', players);
@@ -233,6 +251,7 @@ async function main(){
 				salas[sala] = {
 					sala: sala,
 					jogadores: [],
+					skills: [],
 					gameStatus: 0,
 				}
 			}
@@ -254,7 +273,15 @@ async function main(){
 				}
 			})
 			// Adiciona jogador na sala
-			salas[data.sala].jogadores.push(data.nome)
+			const player = {
+				nome: data.nome,
+				socketId: clientSocket.id,
+				sala: data.sala,
+				x: 0,
+				y: 0
+			}
+			salas[data.sala].jogadores.push(player)
+			console.log('PLAYER OBJECT', player)
 			console.log('usuario '+data.nome+' entrou na sala '+data.sala)
 		})
 
@@ -267,14 +294,18 @@ async function main(){
 			}
 		}
 
+		clientSocket.on('gameReady', (data) => {
+			salas[data.sala].gameStatus = 1
+		})
+
 		clientSocket.on('inputs', (inputs) => {
 			inputsMap[clientSocket.id] = inputs
 		})
 
-		clientSocket.on('skill', (angle) => {
-			const player = players.find(player => player.socketId === clientSocket.id)
-			skills.push({
-				angle,
+		clientSocket.on('skill', (data) => {
+			const player = salas[data.sala].jogadores.find(player => player.socketId === clientSocket.id)
+			salas[data.sala].skills.push({
+				angle: data.angle,
 				x: player.x,
 				y: player.y,
 				timeLeft: 2000,
@@ -292,7 +323,7 @@ async function main(){
 	}, 1000 / TICK_RATE)
 }
 
-// ficar mandando a lista de player para todo mundo a cada 1 segundo
+// controle de players e salas no lobby
 setInterval(() => {
 	io.emit('players', players)
 	io.emit('salas', salas)
