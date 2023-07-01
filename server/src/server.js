@@ -22,8 +22,9 @@ let salas = {};
 let inputsMap = {};
 
 const TICK_RATE = 30;
-const SPEED = 10;
-const RUNNING_SPEED = 11;
+const SURVIVOR_SPEED = 5;
+const KILLER_SPEED = 11;
+const RUNNING_SPEED = 10;
 const SKILL_SPEED = 15;
 const SKILL_HITBOX = {width: 16, height: 30}
 const TILE_SIZE = 32;
@@ -75,8 +76,17 @@ function tick(delta){
 		if(jogo.gameStatus === 1){
 			for (const jogador in jogo.jogadores) {
 				const player = jogo.jogadores[jogador]
-				// console.log('PLAYER', player)
 				const inputs = inputsMap[player.socketId]
+
+				let TEAM_SPEED
+				if(player.time === 'killer'){
+					TEAM_SPEED = KILLER_SPEED
+				} else if(inputs.run){
+					TEAM_SPEED = RUNNING_SPEED
+				} else {
+					TEAM_SPEED = SURVIVOR_SPEED
+				}
+
 	
 				if(inputs.up && inputs.down){
 					inputs.up = false
@@ -97,13 +107,13 @@ function tick(delta){
 				*/
 				
 				if(inputs.up){
-					player.y -= SPEED
+					player.y -= TEAM_SPEED
 					let colision = isCollidingWithMap(player)
 					if(colision.bool){
 						player.y = colision.positionY + TILE_SIZE
 					}
 				} else if(inputs.down){
-					player.y += SPEED
+					player.y += TEAM_SPEED
 					let colision = isCollidingWithMap(player)
 					if(colision.bool){
 						player.y = colision.positionY - PLAYER_SIZE
@@ -111,13 +121,13 @@ function tick(delta){
 				}
 	
 				if(inputs.left){
-					player.x -= SPEED
+					player.x -= TEAM_SPEED
 					colision = isCollidingWithMap(player)
 					if(colision.bool){
 						player.x = colision.positionX + TILE_SIZE
 					}
 				} else if(inputs.right){
-					player.x += SPEED
+					player.x += TEAM_SPEED
 					colision = isCollidingWithMap(player)
 					if(colision.bool){
 						player.x = colision.positionX - PLAYER_SIZE
@@ -133,7 +143,8 @@ function tick(delta){
 				// console.log('SKILL ANGLE', skill.angle)
 				skill.timeLeft -= delta
 	
-				for (const player of players) {
+				for (const jogador in jogo.jogadores) {
+					const player = jogo.jogadores[jogador]
 					if(player.socketId === skill.playerId) continue;
 	
 					if(isColliding(
@@ -277,8 +288,18 @@ async function main(){
 				nome: data.nome,
 				socketId: clientSocket.id,
 				sala: data.sala,
+				time: 'killer',
+				skillColdown: 0,
 				x: 0,
 				y: 0
+			}
+			if(salas[data.sala].jogadores.length > 0) {
+				if(salas[data.sala].jogadores[0].time === 'killer'){
+					player.time = 'survivor'
+				}
+				if(salas[data.sala].jogadores[0].time === 'survivor'){
+					player.time = 'killer'
+				}
 			}
 			salas[data.sala].jogadores.push(player)
 			console.log('PLAYER OBJECT', player)
@@ -287,10 +308,8 @@ async function main(){
 
 		function salaDisconnect(sala, nome){
 			if(salas[sala]){
-				let index = salas[sala].jogadores.map(e => e).indexOf(nome)
-				if (index != -1) {
-					salas[sala].jogadores.splice(index, 1)
-				}
+				salas[sala].jogadores = salas[sala].jogadores.filter((jogador) => 
+				jogador.nome != nome)
 			}
 		}
 
@@ -331,12 +350,9 @@ setInterval(() => {
 	console.log('salas', salas)
 }, 10000)
 
-
-
 httpServer.listen(3000, () => {
 	console.log('servidor iniciou na porta 3000')
 }
 )
-
 
 main();

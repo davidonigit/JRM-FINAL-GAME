@@ -26,6 +26,8 @@
         propImage.src = 'Props.png'
         const killerImage = new Image();
         killerImage.src = 'killer.png';
+        const survivorImage = new Image();
+        survivorImage.src = 'survivor.png';
         const axeImage = new Image();
         axeImage.src = 'axe.png';
 
@@ -75,41 +77,50 @@
             down: false,
             left: false,
             right: false,
+            run: false,
         }
 
         window.addEventListener('keydown', (e) => {
             console.log(e.key)
-            if(e.key === 'w'){
+            if(e.key.toLowerCase() === 'w'){
                 inputs['up'] = true;
-            } else if(e.key === 's'){
+            } else if(e.key.toLowerCase() === 's'){
                 inputs['down'] = true;
-            } else if(e.key === 'a'){
+            } else if(e.key.toLowerCase() === 'a'){
                 inputs['left'] = true;
-            } else if(e.key === 'd'){
+            } else if(e.key.toLowerCase() === 'd'){
                 inputs['right'] = true;
+            } else if(e.shiftKey){
+                inputs['run'] = true;
             }
             serverSocket.emit('inputs', inputs)
         })
 
         window.addEventListener('keyup', (e) => {
-            if(e.key === 'w'){
+            if(e.key.toLowerCase() === 'w'){
                 inputs['up'] = false;
-            } else if(e.key === 's'){
+            } else if(e.key.toLowerCase() === 's'){
                 inputs['down'] = false;
-            } else if(e.key === 'a'){
+            } else if(e.key.toLowerCase() === 'a'){
                 inputs['left'] = false;
-            } else if(e.key === 'd'){
+            } else if(e.key.toLowerCase() === 'd'){
                 inputs['right'] = false;
+            } else if(!e.shiftKey){
+                inputs['run'] = false;
             }
             serverSocket.emit('inputs', inputs)
         })
 
         window.addEventListener('click', (e) => {
-            const angle = Math.atan2(
-                e.clientY - canvas.height /2,
-                e.clientX - canvas.width /2
-            )
-            serverSocket.emit('skill', {angle: angle, sala: userRoom})
+            const myPlayer = players.find((player) => player.socketId === serverSocket.id)
+
+            if(myPlayer.time === 'killer'){
+                const angle = Math.atan2(
+                    e.clientY - canvas.height /2,
+                    e.clientX - canvas.width /2
+                )
+                serverSocket.emit('skill', {angle: angle, sala: userRoom})
+            }
         })
 
         function draw(){
@@ -120,8 +131,8 @@
             if(myPlayer){
                 cameraX = parseInt(myPlayer.x - canvas.width / 2)
                 cameraY = parseInt(myPlayer.y - canvas.height / 2)
-                console.log('PLAYER X', myPlayer.x)
-                console.log('PLAYER Y', myPlayer.y)
+                // console.log('PLAYER X', myPlayer.x)
+                // console.log('PLAYER Y', myPlayer.y)
             }
 
             const TILE_IN_ROW = 25;
@@ -169,7 +180,11 @@
             // Desenhar players
             players.forEach(player => {
                 //console.log(player)
-                ctx.drawImage(killerImage, player.x - cameraX, player.y - cameraY)
+                if(player.time === 'killer'){
+                    ctx.drawImage(killerImage, player.x - cameraX, player.y - cameraY)
+                } else {
+                    ctx.drawImage(survivorImage, player.x - cameraX, player.y - cameraY)
+                }
             })
 
             skills.forEach(skill => {
