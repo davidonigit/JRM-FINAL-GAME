@@ -21,6 +21,7 @@ let players = [];
 let salas = {};
 let inputsMap = {};
 
+const ROOM_SIZE = 2;
 const TICK_RATE = 30;
 const SURVIVOR_SPEED = 5;
 const KILLER_SPEED = 11;
@@ -28,47 +29,103 @@ const RUNNING_SPEED = 10;
 const SKILL_SPEED = 15;
 const SKILL_HITBOX = {width: 16, height: 30}
 const TILE_SIZE = 32;
-const PLAYER_SIZE = 64;
+const PLAYER_SIZE = {width: 40, height: 64};
 
-let ground2D, decal2D;
+let ground2D, decal2D, prop2D, interact2D;
 
 function isColliding(rect1, rect2) {
 	return (
-	  rect1.x < rect2.x + rect2.w &&
-	  rect1.x + rect1.w > rect2.x &&
-	  rect1.y < rect2.y + rect2.h &&
-	  rect1.h + rect1.y > rect2.y
-	);
-  }
+		rect1.x < rect2.x + rect2.w &&
+		rect1.x + rect1.w > rect2.x &&
+		rect1.y < rect2.y + rect2.h &&
+		rect1.h + rect1.y > rect2.y
+	)
+}
 
-  function isCollidingWithMap(player) {
+function isCollidingWithMap(player) {
 	for (let row = 0; row < decal2D.length; row++) {
-	  for (let col = 0; col < decal2D[0].length; col++) {
-		const tile = decal2D[row][col];
-  
-		if (
-		  tile &&
-		  isColliding(
-			{ //rect1
-			  x: player.x,
-			  y: player.y,
-			  w: PLAYER_SIZE,
-			  h: PLAYER_SIZE,
-			},
-			{ //rect2
-			  x: col * TILE_SIZE,
-			  y: row * TILE_SIZE,
-			  w: TILE_SIZE,
-			  h: TILE_SIZE,
+		for (let col = 0; col < decal2D[0].length; col++) {
+			const tile = decal2D[row][col];
+			const prop = prop2D[row][col];
+			if (
+				(tile || prop) &&
+				isColliding(
+					{ //rect1
+					x: player.x,
+					y: player.y + (3*PLAYER_SIZE.height/4),
+					w: PLAYER_SIZE.width,
+					h: PLAYER_SIZE.height/4,
+					},
+					{ //rect2
+					x: col * TILE_SIZE,
+					y: row * TILE_SIZE,
+					w: TILE_SIZE,
+					h: TILE_SIZE,
+					}
+				)
+			) { 
+				return {bool : true, positionX : col * TILE_SIZE, positionY: row * TILE_SIZE};
 			}
-		  )
-		) {
-		  return {bool : true, positionX : col * TILE_SIZE, positionY: row * TILE_SIZE};
-		}
-	  }
+	  	}
 	}
 	return {bool : false};
-  }
+}
+
+function isCollidingWithMapSkill(skill) {
+	for (let row = 0; row < decal2D.length; row++) {
+	  	for (let col = 0; col < decal2D[0].length; col++) {
+			const tile = decal2D[row][col];
+			if (
+				tile &&
+				isColliding(
+					{ //rect1
+					x: skill.x,
+					y: skill.y,
+					w: SKILL_HITBOX.width,
+					h: SKILL_HITBOX.height,
+					},
+					{ //rect2
+					x: col * TILE_SIZE,
+					y: row * TILE_SIZE,
+					w: TILE_SIZE,
+					h: TILE_SIZE/4,
+					}
+				)
+			) {
+				return true
+			}
+		}
+	}
+	return false;
+}
+
+function mapInteraction(player){
+	for (let row = 0; row < interact2D.length; row++) {
+		for (let col = 0; col < interact2D[0].length; col++) {
+			const tile = interact2D[row][col];
+			if (
+				tile &&
+				isColliding(
+					{ //rect1
+					x: player.x,
+					y: player.y,
+					w: PLAYER_SIZE.width,
+					h: PLAYER_SIZE.height,
+					},
+					{ //rect2
+					x: (col-1) * TILE_SIZE,
+					y: (row-1) * TILE_SIZE,
+					w: TILE_SIZE*3,
+					h: TILE_SIZE*3,
+					}
+				)
+			) {
+				return true, {positionX : col * TILE_SIZE, positionY : row * TILE_SIZE}
+			}
+	  	}
+	}
+	return false;
+}
 
 function tick(delta){
 	for (const sala in salas){
@@ -77,6 +134,37 @@ function tick(delta){
 			for (const jogador in jogo.jogadores) {
 				const player = jogo.jogadores[jogador]
 				const inputs = inputsMap[player.socketId]
+
+				if(player.skillColdown > 0){
+					player.skillColdown -= delta
+				} else {
+					player.skillColdown = 0
+				}
+
+				if(player.time === 'survivor'){
+					if(player.vida>0){
+						player.pontos += 1
+					} else {
+						if(jogo.jogadores[0].vida === 0 && jogo.jogadores[1].vida === 0){
+							jogo.gameStatus = 2
+							let player0 = jogo.jogadores[0]
+							let player1 = jogo.jogadores[1]
+							if(player0.pontos > player1.pontos){
+								io.to(jogo.sala).emit('gameOver', 
+								{vencedor : player0.nome, pontosVencedor: player0.pontos, perdedor: player1.nome, pontosPerdedor: player1.pontos})
+							} else if(player1.pontos > player0.pontos){
+								io.to(jogo.sala).emit('gameOver', 
+								{vencedor : player1.nome, pontosVencedor: player1.pontos, perdedor: player0.nome, pontosPerdedor: player0.pontos})
+							} else{
+								io.to(jogo.sala).emit('gameOverEmpate', 
+								{player0 : player0.nome, pontos0: player0.pontos,
+								player1: player1.nome, pontos1: player1.pontos})
+							}
+						} else {
+							trocarTimes(jogo)
+						}
+					}
+				}
 
 				let TEAM_SPEED
 				if(player.time === 'killer'){
@@ -110,13 +198,16 @@ function tick(delta){
 					player.y -= TEAM_SPEED
 					let colision = isCollidingWithMap(player)
 					if(colision.bool){
-						player.y = colision.positionY + TILE_SIZE
+						player.y = colision.positionY - (TILE_SIZE/2)
 					}
 				} else if(inputs.down){
 					player.y += TEAM_SPEED
+					if(player.y > 3200 - PLAYER_SIZE.height){
+						player.y = 3200 - PLAYER_SIZE.height
+					}
 					let colision = isCollidingWithMap(player)
 					if(colision.bool){
-						player.y = colision.positionY - PLAYER_SIZE
+						player.y = colision.positionY - PLAYER_SIZE.height
 					}
 				}
 	
@@ -130,19 +221,21 @@ function tick(delta){
 					player.x += TEAM_SPEED
 					colision = isCollidingWithMap(player)
 					if(colision.bool){
-						player.x = colision.positionX - PLAYER_SIZE
+						player.x = colision.positionX - PLAYER_SIZE.width
 					}
 				}
+				if(mapInteraction(player) && inputs.jump){
+					console.log('ANIMAÇÃO')
+				}
+
 			}
 	
 			for (const habilidade in jogo.skills) {
 				const skill = jogo.skills[habilidade]
-				// console.log('SKILL', skill)
 				skill.x += Math.cos(skill.angle) * SKILL_SPEED
 				skill.y += Math.sin(skill.angle) * SKILL_SPEED
-				// console.log('SKILL ANGLE', skill.angle)
 				skill.timeLeft -= delta
-	
+
 				for (const jogador in jogo.jogadores) {
 					const player = jogo.jogadores[jogador]
 					if(player.socketId === skill.playerId) continue;
@@ -157,19 +250,24 @@ function tick(delta){
 						{ //rect2
 						x: player.x,
 						y: player.y,
-						w: PLAYER_SIZE,
-						h: PLAYER_SIZE,
+						w: PLAYER_SIZE.width,
+						h: PLAYER_SIZE.height,
 						}
 					)) {
-						player.x = 0
-						player.y = 0
+						player.x = 1700
+						player.y = 1700
+						player.vida -=1
 						skill.timeLeft = 0
 						break;
 					}
 				}
+
+				if(isCollidingWithMapSkill(skill)){
+					skill.timeLeft = 0
+				}
 			}
 	
-			salas[sala].skills = salas[sala].skills.filter((skill) => skill.timeLeft >= 0)
+			salas[sala].skills = salas[sala].skills.filter((skill) => skill.timeLeft > 0)
 			
 			io.to(salas[sala].sala).emit('playersTick', salas[sala].jogadores);
 			io.to(salas[sala].sala).emit('skillsTick', salas[sala].skills)
@@ -191,8 +289,43 @@ function addPlayer(nome, socketId, sala) {
 	io.emit('players', players);
 }
 
+function criarSala(sala){
+	if(salas[sala] === undefined && sala != null){
+		salas[sala] = {
+			sala: sala,
+			jogadores: [],
+			skills: [],
+			gameStatus: 0,
+		}
+	}
+}
+
+function salaDisconnect(sala, nome){
+	if(salas[sala]){
+		salas[sala].jogadores = salas[sala].jogadores.filter((jogador) => 
+		jogador.nome != nome)
+		if(salas[sala].gameStatus != 0){
+			io.to(salas[sala].sala).emit('oponentDisconnect')
+			salas[sala].gameStatus = 0
+		} else {
+			console.log('server preGameDisc')
+			io.to(salas[sala].sala).emit('preGameDisconnect')
+		}
+	}
+}
+
+function trocarTimes(jogo){
+	for(index=0; index<ROOM_SIZE; index++){
+		if(jogo.jogadores[index].time === 'killer'){
+			jogo.jogadores[index].time = 'survivor'
+		} else {
+			jogo.jogadores[index].time = 'killer'
+		}
+	}
+}
+
 async function main(){
-	({ground2D, decal2D } = await loadMap());
+	({ground2D, decal2D, prop2D, interact2D } = await loadMap());
 	io.on('connection', (clientSocket) => {
 		console.log('usuario conectado')
 
@@ -209,10 +342,12 @@ async function main(){
 			up: false,
 			down: false,
 			left: false,
-			right: false
+			right: false,
+			run: false,
+			jump: false,
 		}
 
-		clientSocket.emit('map', {ground: ground2D, decal: decal2D})
+		clientSocket.emit('map', {ground: ground2D, decal: decal2D, prop: prop2D ,interact: interact2D})
 		clientSocket.emit('salas', salas)
 		clientSocket.emit('players', players);
 
@@ -257,17 +392,6 @@ async function main(){
 			io.emit('postarMensagem', msg)
 		})
 
-		function criarSala(sala){
-			if(salas[sala] === undefined && sala != null){
-				salas[sala] = {
-					sala: sala,
-					jogadores: [],
-					skills: [],
-					gameStatus: 0,
-				}
-			}
-		}
-
 		clientSocket.on('criarSala', sala => {
 			criarSala(sala)
 			io.emit('salas', salas)
@@ -276,45 +400,51 @@ async function main(){
 
 		clientSocket.on('entrarSala', (data) => {
 			criarSala(data.sala)
-			clientSocket.join(data.sala)
-			// Indica no player qual sua sala
-			players.forEach(player => {
-				if(player.nome === data.nome){
-					player.sala = data.sala
+			if(salas[data.sala].jogadores.length < ROOM_SIZE){
+				clientSocket.join(data.sala)
+				// Indica no player qual sua sala
+				players.forEach(player => {
+					if(player.nome === data.nome){
+						player.sala = data.sala
+					}
+				})
+				// Adiciona jogador na sala
+				const player = {
+					nome: data.nome,
+					socketId: clientSocket.id,
+					sala: data.sala,
+					time: 'killer',
+					skillColdown: 0,
+					x: 1500,
+					y: 1700,
+					vida: 2,
+					pontos: 0,
 				}
-			})
-			// Adiciona jogador na sala
-			const player = {
-				nome: data.nome,
-				socketId: clientSocket.id,
-				sala: data.sala,
-				time: 'killer',
-				skillColdown: 0,
-				x: 0,
-				y: 0
+				if(salas[data.sala].jogadores.length > 0) {
+					if(salas[data.sala].jogadores[0].time === 'killer'){
+						player.time = 'survivor'
+					}
+					if(salas[data.sala].jogadores[0].time === 'survivor'){
+						player.time = 'killer'
+					}
+				}
+				salas[data.sala].jogadores.push(player)
+	
+				if(salas[data.sala].jogadores.length === ROOM_SIZE){
+					io.to(salas[data.sala].sala).emit('oponentReady')
+					console.log('SALA', salas[data.sala].sala, 'PRONTA PARA INICIAR')
+				}
+				console.log('PLAYER OBJECT', player)
+				console.log('usuario '+data.nome+' entrou na sala '+data.sala)
+			} else {
+				clientSocket.emit('salaCheia')
 			}
-			if(salas[data.sala].jogadores.length > 0) {
-				if(salas[data.sala].jogadores[0].time === 'killer'){
-					player.time = 'survivor'
-				}
-				if(salas[data.sala].jogadores[0].time === 'survivor'){
-					player.time = 'killer'
-				}
-			}
-			salas[data.sala].jogadores.push(player)
-			console.log('PLAYER OBJECT', player)
-			console.log('usuario '+data.nome+' entrou na sala '+data.sala)
 		})
 
-		function salaDisconnect(sala, nome){
-			if(salas[sala]){
-				salas[sala].jogadores = salas[sala].jogadores.filter((jogador) => 
-				jogador.nome != nome)
-			}
-		}
-
-		clientSocket.on('gameReady', (data) => {
+		clientSocket.on('startGame', (data) => {
 			salas[data.sala].gameStatus = 1
+			io.to(salas[data.sala].sala).emit('gameStarted')
+			console.log('GAME INICIADO NA SALA', salas[data.sala].sala)
 		})
 
 		clientSocket.on('inputs', (inputs) => {
@@ -323,13 +453,17 @@ async function main(){
 
 		clientSocket.on('skill', (data) => {
 			const player = salas[data.sala].jogadores.find(player => player.socketId === clientSocket.id)
-			salas[data.sala].skills.push({
-				angle: data.angle,
-				x: player.x,
-				y: player.y,
-				timeLeft: 2000,
-				playerId: clientSocket.id
-			})
+			const playerIndex = salas[data.sala].jogadores.findIndex(player => player.socketId === clientSocket.id)
+			if(salas[data.sala].jogadores[playerIndex].skillColdown === 0){
+				salas[data.sala].skills.push({
+					angle: data.angle,
+					x: player.x,
+					y: player.y,
+					timeLeft: 2000,
+					playerId: clientSocket.id
+				})
+				salas[data.sala].jogadores[playerIndex].skillColdown = 2000
+			}
 		})
 	})
 
@@ -346,7 +480,7 @@ async function main(){
 setInterval(() => {
 	io.emit('players', players)
 	io.emit('salas', salas)
-	console.log('players', players)
+	//console.log('players', players)
 	console.log('salas', salas)
 }, 10000)
 

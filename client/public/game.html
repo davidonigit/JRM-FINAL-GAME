@@ -6,24 +6,65 @@
     <title>Game</title>
 
     <style>
+        h1{
+            padding: 10;
+        }
         body{
             margin: 0;
+            padding: 0;
+            background-color: rgb(23, 40, 50);
+        }
+        #canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #preGame, #gameOver{
+            background-color: #ccc;
+            padding: 20px;
+            border-radius: 10px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        h3{
+            font-weight: 'normal'
+        }
+        button{
+            width: 60%;
+            height: 30px;
+            cursor: pointer;
+            background-color: rgb(23, 40, 50);
+            color: white;
+            border: 0;
+            border-radius: 20px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     
-    <h1>AGUARDANDO PLAYERS</h1>
-    <div id="teste"></div>
-
-    <canvas id="canvas"></canvas>
+    <div id="preGame" style="display: block;">
+        <h1>Aguardando players</h1>
+        <h3 id="connect" style="display: none;"> Oponente conectado...</h3>
+        <button onclick="backToLobby()">Lobby</button>
+    </div>
+    <div id="gameArea">
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+    <div id="gameOver" style="display: none;">
+        <h1>Game Over!</h1>
+        <button onclick="backToLobby()">Lobby</button>
+    </div>
+    
 
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
     <script>
         const mapImage = new Image();
-        mapImage.src = '/Tiles.png';
-        const propImage = new Image();
-        propImage.src = 'Props.png'
+        mapImage.src = 'AllTiles.png';
         const killerImage = new Image();
         killerImage.src = 'killer.png';
         const survivorImage = new Image();
@@ -36,13 +77,10 @@
         let userRoom = localStorage.getItem('userRoom');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
         
-        testes = document.getElementById('teste')
-        testes.innerHTML += `<h3>${userId} na sala ${userRoom} </h3>`
-
+        preGame = document.getElementById('preGame')
+        gameOver = document.getElementById('gameOver')
+        
         if(userId === 'null'){
             location.href = 'login.html'
         } else if(userRoom === 'null'){
@@ -50,18 +88,74 @@
         } else {
             serverSocket.emit('entrar', {nome : userId, sala : userRoom})
             serverSocket.emit('entrarSala', {sala: userRoom, nome : userId})
-            serverSocket.emit('gameReady', {sala: userRoom})
+            if(userId === userRoom){
+                preGame.innerHTML += '<button onclick="startGame()">Start</button>'
+            }
         }
 
         let groundMap = [[]];
         let decalMap = [[]];
+        let propMap = [[]];
+        let interactMap = [[]];
         let players = [];
         let skills = [];
         const TILE_SIZE = 32;
+        let gameReady = false
+        let oponentReady = false
+
+        function startGame(){
+            if(!oponentReady){
+                alert('Aguardando outro player entrar...')
+            }else{
+                serverSocket.emit('startGame', {sala: userRoom})
+            }
+        }
+
+        function backToLobby(){
+            location.href = 'lobby.html'
+        }
+
+        serverSocket.on('gameStarted', () => {
+            preGame.style.display = 'none'
+            canvas.style.display = 'block'
+            canvas.width = 1000
+            canvas.height = 600
+            gameReady = true
+        })
+
+        serverSocket.on('oponentReady', () => {
+            oponentReady = true
+            document.getElementById('connect').style.display = 'block'
+        })
+
+        serverSocket.on('preGameDisconnect', () => {
+            document.getElementById('connect').style.display = 'none'
+        })
+
+        serverSocket.on('oponentDisconnect', () => {
+            canvas.style.display = 'none'
+            gameOver.style.display = 'block'
+            gameOver.innerHTML += `<h3> O oponente se desconectou...<h3>`
+        })
+
+        serverSocket.on('salaCheia', () => {
+            alert('sala cheia')
+            location.href = 'lobby.html'
+        })
+
+        serverSocket.on('gameOver', (data) => {
+            canvas.style.display = 'none'
+            gameOver.style.display = 'block'
+            gameOver.innerHTML += `<h3> VITÓRIA DE <strong>${data.vencedor}</strong>!<h3>`
+            gameOver.innerHTML += `<h3> PLACAR: </h3>`
+            gameOver.innerHTML += `<h3><strong>${data.vencedor}</strong> (${data.pontosVencedor}) x (${data.pontosPerdedor}) <strong>${data.perdedor}</strong></h3>`
+        })
 
         serverSocket.on('map', (loadedMap) => {
             groundMap = loadedMap.ground
             decalMap = loadedMap.decal
+            propMap = loadedMap.prop
+            interactMap = loadedMap.interact;
         })
 
         serverSocket.on('playersTick', (serverPlayers) => {
@@ -78,10 +172,10 @@
             left: false,
             right: false,
             run: false,
+            jump: false,
         }
 
         window.addEventListener('keydown', (e) => {
-            console.log(e.key)
             if(e.key.toLowerCase() === 'w'){
                 inputs['up'] = true;
             } else if(e.key.toLowerCase() === 's'){
@@ -90,6 +184,8 @@
                 inputs['left'] = true;
             } else if(e.key.toLowerCase() === 'd'){
                 inputs['right'] = true;
+            } else if(e.key.toLowerCase() === 'e'){
+                inputs['jump'] = true
             } else if(e.shiftKey){
                 inputs['run'] = true;
             }
@@ -105,6 +201,8 @@
                 inputs['left'] = false;
             } else if(e.key.toLowerCase() === 'd'){
                 inputs['right'] = false;
+            } else if(e.key.toLowerCase() === 'e'){
+                inputs['jump'] = false;
             } else if(!e.shiftKey){
                 inputs['run'] = false;
             }
@@ -116,81 +214,117 @@
 
             if(myPlayer.time === 'killer'){
                 const angle = Math.atan2(
-                    e.clientY - canvas.height /2,
-                    e.clientX - canvas.width /2
+                    e.clientY - canvas.height/2,
+                    e.clientX - canvas.width/2
                 )
                 serverSocket.emit('skill', {angle: angle, sala: userRoom})
+                console.log('angle', angle)
+                console.log('clientX', e.clientX)
+                console.log('clientY', e.clientY)
             }
         })
 
         function draw(){
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if(gameReady){
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const myPlayer = players.find((player) => player.socketId === serverSocket.id)
-            let cameraX, cameraY = 0
-            if(myPlayer){
-                cameraX = parseInt(myPlayer.x - canvas.width / 2)
-                cameraY = parseInt(myPlayer.y - canvas.height / 2)
-                // console.log('PLAYER X', myPlayer.x)
-                // console.log('PLAYER Y', myPlayer.y)
-            }
-
-            const TILE_IN_ROW = 25;
-            // ground
-            for (let row = 0; row < groundMap.length; row++) {
-                for (let col = 0; col < groundMap[0].length; col++) {
-                    let { id } = groundMap[row][col];
-                    const imageRow = parseInt(id / TILE_IN_ROW);
-                    const imageCol = id % TILE_IN_ROW;
-                    ctx.drawImage(
-                        mapImage,
-                        imageCol * TILE_SIZE,
-                        imageRow * TILE_SIZE,
-                        TILE_SIZE,
-                        TILE_SIZE,
-                        col * TILE_SIZE - cameraX,
-                        row * TILE_SIZE - cameraY,
-                        TILE_SIZE,
-                        TILE_SIZE
-                    );
+                const myPlayer = players.find((player) => player.socketId === serverSocket.id)
+                let cameraX, cameraY = 0
+                if(myPlayer){
+                    cameraX = parseInt(myPlayer.x - canvas.width / 2)
+                    if(cameraX < 0){
+                        cameraX = 0
+                    }
+                    if(cameraX > 3200-canvas.width){
+                        cameraX = 3200-canvas.width
+                    }
+                    cameraY = parseInt(myPlayer.y - canvas.height / 2)
+                    if(cameraY < 0){
+                        cameraY = 0
+                    }
+                    if(cameraY > 3200-canvas.height){
+                        cameraY = 3200-canvas.height
+                    }
                 }
-            }
 
-            // decal
-            for (let row = 0; row < decalMap.length; row++) {
-                for (let col = 0; col < decalMap[0].length; col++) {
-                    let { id } = decalMap[row][col] ?? { id: undefined };
-                    const imageRow = parseInt(id / TILE_IN_ROW);
-                    const imageCol = id % TILE_IN_ROW;
-
-                    ctx.drawImage(
-                        propImage,
-                        imageCol * TILE_SIZE,
-                        imageRow * TILE_SIZE,
-                        TILE_SIZE,
-                        TILE_SIZE,
-                        col * TILE_SIZE - cameraX,
-                        row * TILE_SIZE - cameraY,
-                        TILE_SIZE,
-                        TILE_SIZE
-                    );
+                const TILE_IN_ROW = 25;
+                // ground
+                for (let row = 0; row < groundMap.length; row++) {
+                    for (let col = 0; col < groundMap[0].length; col++) {
+                        let { id } = groundMap[row][col] ?? { id: undefined };
+                        const imageRow = parseInt(id / TILE_IN_ROW);
+                        const imageCol = id % TILE_IN_ROW;
+                        ctx.drawImage(
+                            mapImage,
+                            imageCol * TILE_SIZE,
+                            imageRow * TILE_SIZE,
+                            TILE_SIZE,
+                            TILE_SIZE,
+                            col * TILE_SIZE - cameraX,
+                            row * TILE_SIZE - cameraY,
+                            TILE_SIZE,
+                            TILE_SIZE
+                        );
+                    }
                 }
-            }
 
-            // Desenhar players
-            players.forEach(player => {
-                //console.log(player)
-                if(player.time === 'killer'){
-                    ctx.drawImage(killerImage, player.x - cameraX, player.y - cameraY)
-                } else {
-                    ctx.drawImage(survivorImage, player.x - cameraX, player.y - cameraY)
+                // decal
+                for (let row = 0; row < decalMap.length; row++) {
+                    for (let col = 0; col < decalMap[0].length; col++) {
+                        let { id } = decalMap[row][col] ?? { id: undefined };
+                        
+                        const imageRow = parseInt(id / TILE_IN_ROW);
+                        const imageCol = id % TILE_IN_ROW;
+
+                        ctx.drawImage(
+                            mapImage,
+                            imageCol * TILE_SIZE,
+                            imageRow * TILE_SIZE,
+                            TILE_SIZE,
+                            TILE_SIZE,
+                            col * TILE_SIZE - cameraX,
+                            row * TILE_SIZE - cameraY,
+                            TILE_SIZE,
+                            TILE_SIZE
+                        );
+                    }
                 }
-            })
 
-            skills.forEach(skill => {
-                ctx.drawImage(axeImage, skill.x - cameraX, skill.y - cameraY)
-            })
+                // prop
+                for (let row = 0; row < propMap.length; row++) {
+                    for (let col = 0; col < propMap[0].length; col++) {
+                        let { id } = propMap[row][col] ?? { id: undefined };
+                        
+                        const imageRow = parseInt(id / TILE_IN_ROW);
+                        const imageCol = id % TILE_IN_ROW;
 
+                        ctx.drawImage(
+                            mapImage,
+                            imageCol * TILE_SIZE,
+                            imageRow * TILE_SIZE,
+                            TILE_SIZE,
+                            TILE_SIZE,
+                            col * TILE_SIZE - cameraX,
+                            row * TILE_SIZE - cameraY,
+                            TILE_SIZE,
+                            TILE_SIZE
+                        );
+                    }
+                }
+
+                // Desenhar players
+                players.forEach(player => {
+                    if(player.time === 'killer'){
+                        ctx.drawImage(killerImage, player.x - cameraX, player.y - cameraY)
+                    } else {
+                        ctx.drawImage(survivorImage, player.x - cameraX, player.y - cameraY)
+                    }
+                })
+
+                skills.forEach(skill => {
+                    ctx.drawImage(axeImage, skill.x - cameraX, skill.y - cameraY)
+                })
+            }
             requestAnimationFrame(draw)
         }
         draw()
