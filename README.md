@@ -32,7 +32,7 @@ Os cadastros ficam salvos em memória, portanto, ao reiniciar o servidor os cada
 
 Com o cadastro realizado, faça login com a conta criada.
 
-Com o login concluído, você terá acesso ao Game Lobby. Nele é possível visualizar os players online, interagir com eles num chat global, e criar e entrar em salas criadas pelos jogadores.
+Com o login concluído, você terá acesso ao Game Lobby. Nele é possível visualizar os players online, interagir com eles num chat global, criar uma sala e entrar em salas criadas pelos jogadores.
 
 Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na sala, o criador pode iniciar a partida.
 
@@ -58,4 +58,4 @@ Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na s
 
 - Cada jogador possui 2 vidas, ao ser atingido 2 vezes, os jogadores dão respawn e os times serão trocados.
 
-- Quem sobreviver mais tempo / eliminar o inimigo mais rápido, vence
+- Quem sobreviver mais tempo / eliminar o inimigo mais rápido, vence.
