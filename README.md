@@ -46,7 +46,8 @@ Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na s
 
 ## SURVIVOR:
 
-![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/554f01bf-5c2e-4db8-93e6-77e82658341a)
+![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/554f01bf-5c2e-4db8-93e6-77e82658341a) barricada vertical
+![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/5ee14683-2d79-4f58-94bb-9e023de45c5e) barricada horizontal
 
 - **Correr:** SHIFT (manter pressionado)
 - **Pular barricadas:** E (possui 2 segundos de coldown)
