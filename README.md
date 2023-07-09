@@ -46,6 +46,8 @@ Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na s
 
 ## SURVIVOR:
 
+![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/bd8d718e-3dbf-45f9-8d65-aea97c935a86)
+
 - **Correr:** SHIFT (manter pressionado)
 - **Pular barricadas:** E (possui 2 segundos de coldown)
 - Ao ser atingido, recebe 150% de boost na velocidade, durante 3 segundos
