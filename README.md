@@ -38,17 +38,17 @@ Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na s
 
 ## JOGABILIDADE
 
-# Ambos os times:
+## Ambos os times:
 
 - Controlar o personagem: movimentação padrão com W A S D (cima, esquerda, baixo, direita, respectivamente)
 
-# SURVIVOR:
+## SURVIVOR:
 
 - Correr: SHIFT (manter pressionado)
 - Pular barricadas: E (possui 2 segundos de coldown)
 - Ao ser atingido, recebe 150% de boost na velocidade, durante 3 segundos
 
-# KILLER:
+## KILLER:
 
 - Arremessar machado: left click do mouse (possui 2 segundos de coldown)
 
@@ -56,6 +56,6 @@ Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na s
 
 - A pontuação se dá pela quantidade de tempo vivo do jogador no time Survivor
 
-- Cada jogador possui 2 vidas, ao ser atingido 2 vezes, os jogadores dão respawn e os times serão trocas.
+- Cada jogador possui 2 vidas, ao ser atingido 2 vezes, os jogadores dão respawn e os times serão trocados.
 
 - Quem sobreviver mais tempo / eliminar o inimigo mais rápido, vence
