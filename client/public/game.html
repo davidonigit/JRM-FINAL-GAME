@@ -62,9 +62,9 @@
         <h1>Game Over!</h1>
         <button onclick="backToLobby()">Lobby</button>
     </div>
-    
 
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+
     <script>
         const mapImage = new Image();
         mapImage.src = 'AllTiles.png';
@@ -75,7 +75,10 @@
         const axeImage = new Image();
         axeImage.src = 'axe.png';
 
-        const serverSocket = io('ws://localhost:3000');
+        const axeHit = new Audio('axehit.wav')
+        const jumpSound = new Audio('jumpSound.wav')
+
+        const serverSocket = io('ws://localhost:3000')
         const userId = localStorage.getItem('userId');
         let userRoom = localStorage.getItem('userRoom');
         const canvas = document.getElementById('canvas');
@@ -222,6 +225,14 @@
                 )
                 serverSocket.emit('skill', {angle: angle, sala: userRoom})
             }
+        })
+
+        serverSocket.on('axeHit', () => {
+            axeHit.play()
+        })
+
+        serverSocket.on('jumpSound', () => {
+            jumpSound.play()
         })
 
         function draw(){

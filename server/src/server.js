@@ -293,6 +293,7 @@ function tick(delta){
 							player.skillColdown = 2000;
 						}
 					}
+					io.to(salas[sala].sala).emit('jumpSound');
 				}
 
 			}
@@ -321,6 +322,7 @@ function tick(delta){
 						h: PLAYER_SIZE.height,
 						}
 					)) {
+						io.to(salas[sala].sala).emit('axeHit');
 						player.vida -= 1
 						player.boost = 3000;
 						skill.timeLeft = 0
@@ -368,14 +370,14 @@ function criarSala(sala){
 
 function salaDisconnect(sala, nome){
 	if(salas[sala]){
-		salas[sala].jogadores = salas[sala].jogadores.filter((jogador) => 
-		jogador.nome != nome)
-		if(salas[sala].gameStatus != 0){
+		if(salas[sala].gameStatus != 0 && (salas[sala].jogadores[0].nome === nome || salas[sala].jogadores[1].nome === nome)){
 			io.to(salas[sala].sala).emit('oponentDisconnect')
 			salas[sala].gameStatus = 0
-		} else {
+		} else if(salas[sala].jogadores.length === 2){
 			io.to(salas[sala].sala).emit('preGameDisconnect')
 		}
+		salas[sala].jogadores = salas[sala].jogadores.filter((jogador) => 
+		jogador.nome != nome)
 	}
 }
 
