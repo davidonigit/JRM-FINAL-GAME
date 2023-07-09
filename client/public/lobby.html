@@ -6,11 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Lobby</title>
     <style>
-        *{box-sizing: border-box;}
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body{
-            background-color: #181616;
+            background-color: rgb(23, 40, 50);
             width: 100%;
             height: 100%;
+        }
+
+        #container{
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
         }
 
         h3{
@@ -27,9 +37,6 @@
             background-color: white;
             width: 450px;
             padding: 10px;
-            position: absolute;
-            top: 45px;
-            left: 230px;
             border: 1px solid #ccc;
         }
 
@@ -46,9 +53,6 @@
             width: 200px;
             height: 300px;
             padding: 10px;
-            position: absolute;
-            top: 45px;
-            left: 15px;
             border: 1px solid #ccc;
             background-color: white;
         }
@@ -65,9 +69,6 @@
             background-color: white;
             border: 1px solid #ccc;
             padding: 10px;
-            position: absolute;
-            left: 695px;
-            top: 45px;
         }
 
         form input[type=text]{
@@ -82,7 +83,7 @@
             width: 100%;
             height: 30px;
             cursor: pointer;
-            background-color: #181616;
+            background-color: rgb(23, 40, 50);
             color: white;
             border: 0;
             border-radius: 20px;
@@ -90,14 +91,14 @@
         }
 
         form input[type=submit]:hover{
-            background-color: #3A3636;
+            background-color: rgb(36, 60, 74);
         }
 
         button {
             width: 70%;
             height: 20px;
             cursor: pointer;
-            background-color: #181616;
+            background-color: rgb(23, 40, 50);
             color: white;
             border: 0;
             border-radius: 20px;
@@ -105,7 +106,7 @@
         }
 
         button:hover{
-            background-color: #3A3636;
+            background-color: rgb(36, 60, 74);
         }
 
     </style>
@@ -113,27 +114,30 @@
 <body>
     
     <h3>Game Lobby</h3>
-    <form id="chatForm">
-    <h4>Chat global</h2>
-    <span>Bem vindo, </span><span id="meuid"></span><br/>
-    <div id="chat"></div>
-    <input type="text" id="mensagem" placeholder="Mensagem" required>
-    <input type="submit" onclick="enviarMensagem(); return false">
-    </form>
+    <div id="container">
     
-    <div id="playersBoard"">
-        <h4>Jogadores Online</h4>
-        <div id="players"></div>
-    </div>
-
-    <div id="salasBoard">
-        <form>
-            <h4>JOGAR</h4><br>
-            <input type="submit" onclick="criarSala(); return false" value="Criar sala">
+        <div id="playersBoard"">
+            <h4>Jogadores Online</h4>
+            <div id="players"></div>
+        </div>
+        
+        <form id="chatForm">
+        <h4>Chat global</h2>
+        <span>Bem vindo, </span><span id="meuid"></span><br/>
+        <div id="chat"></div>
+        <input type="text" id="mensagem" placeholder="Mensagem" required>
+        <input type="submit" onclick="enviarMensagem(); return false">
         </form>
-        <br>
-        <h4>Salas disponíveis:</h4><br>
-        <div id="salas">
+    
+        <div id="salasBoard">
+            <form>
+                <h4>JOGAR</h4><br>
+                <input type="submit" onclick="criarSala(); return false" value="Criar sala">
+            </form>
+            <br>
+            <h4>Salas disponíveis:</h4><br>
+            <div id="salas">
+            </div>
         </div>
     </div>
 

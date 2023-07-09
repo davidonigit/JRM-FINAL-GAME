@@ -14,7 +14,8 @@ var io = new Server(httpServer, {
 	}
 });
 
-const loadMap = require('./mapLoader')
+const loadMap = require('./mapLoader');
+const { posix } = require('path');
 
 let cadastros = [];
 let players = [];
@@ -26,10 +27,12 @@ const TICK_RATE = 30;
 const SURVIVOR_SPEED = 5;
 const KILLER_SPEED = 11;
 const RUNNING_SPEED = 10;
-const SKILL_SPEED = 15;
+const SKILL_SPEED = 16;
+const BOOST_SPEED = 15;
 const SKILL_HITBOX = {width: 16, height: 30}
 const TILE_SIZE = 32;
 const PLAYER_SIZE = {width: 40, height: 64};
+const SPAWN_POINT = {x1: 2825, y1: 2822, x2: 337, y2: 362};
 
 let ground2D, decal2D, prop2D, interact2D;
 
@@ -103,8 +106,33 @@ function mapInteraction(player){
 	for (let row = 0; row < interact2D.length; row++) {
 		for (let col = 0; col < interact2D[0].length; col++) {
 			const tile = interact2D[row][col];
+			let axi;
+			if(tile){
+				axi = axisVerify(tile)
+			}
 			if (
 				tile &&
+				axi === 'horizontal' &&
+				isColliding(
+					{ //rect1
+					x: player.x,
+					y: player.y,
+					w: PLAYER_SIZE.width,
+					h: PLAYER_SIZE.height,
+					},
+					{ //rect2
+					x: (col) * TILE_SIZE,
+					y: (row-1) * TILE_SIZE,
+					w: TILE_SIZE,
+					h: TILE_SIZE*3,
+					}
+				)
+			) {
+				let axi = axisVerify(tile)
+				return {bool : true, axi: axi, positionX : col * TILE_SIZE, positionY: row * TILE_SIZE};
+			} else if (
+				tile &&
+				axi === 'vertical' &&
 				isColliding(
 					{ //rect1
 					x: player.x,
@@ -114,17 +142,28 @@ function mapInteraction(player){
 					},
 					{ //rect2
 					x: (col-1) * TILE_SIZE,
-					y: (row-1) * TILE_SIZE,
+					y: (row) * TILE_SIZE,
 					w: TILE_SIZE*3,
-					h: TILE_SIZE*3,
+					h: TILE_SIZE,
 					}
 				)
 			) {
-				return true, {positionX : col * TILE_SIZE, positionY : row * TILE_SIZE}
+				let axi = axisVerify(tile)
+				return {bool : true, axi: axi, positionX : col * TILE_SIZE, positionY: row * TILE_SIZE};
 			}
 	  	}
 	}
-	return false;
+	return {bool : false};
+}
+
+function axisVerify(tile){
+	let axi;
+	if(tile.id === 708 || tile.id === 709){
+		axi = 'horizontal';
+	} else if(tile.id === 657 || tile.id === 682){
+		axi = 'vertical';
+	}
+	return axi;
 }
 
 function tick(delta){
@@ -141,6 +180,13 @@ function tick(delta){
 					player.skillColdown = 0
 				}
 
+				if(player.boost > 0){
+					player.boost -= delta
+				} else {
+					player.boost = 0
+				}
+
+				// controle da pontuação
 				if(player.time === 'survivor'){
 					if(player.vida>0){
 						player.pontos += 1
@@ -174,7 +220,9 @@ function tick(delta){
 				} else {
 					TEAM_SPEED = SURVIVOR_SPEED
 				}
-
+				if(player.time === 'survivor' && player.boost > 0){
+					TEAM_SPEED = BOOST_SPEED
+				}
 	
 				if(inputs.up && inputs.down){
 					inputs.up = false
@@ -224,8 +272,27 @@ function tick(delta){
 						player.x = colision.positionX - PLAYER_SIZE.width
 					}
 				}
-				if(mapInteraction(player) && inputs.jump){
-					console.log('ANIMAÇÃO')
+
+				let animation = mapInteraction(player)
+				if(animation.bool && inputs.jump && player.skillColdown === 0 && player.time === 'survivor'){
+					
+					if(animation.axi === 'horizontal'){
+						if(player.y === animation.positionY - PLAYER_SIZE.height){
+								player.y += PLAYER_SIZE.height
+								player.skillColdown = 2000;
+						} else if(player.y === animation.positionY - 16){
+							player.y -= PLAYER_SIZE.height
+							player.skillColdown = 2000;
+						}
+					} else {
+						if(player.x === animation.positionX + TILE_SIZE){
+							player.x -= PLAYER_SIZE.width + TILE_SIZE
+							player.skillColdown = 2000;
+						} else if(player.x === animation.positionX - PLAYER_SIZE.width){
+							player.x += PLAYER_SIZE.width + TILE_SIZE
+							player.skillColdown = 2000;
+						}
+					}
 				}
 
 			}
@@ -254,9 +321,8 @@ function tick(delta){
 						h: PLAYER_SIZE.height,
 						}
 					)) {
-						player.x = 1700
-						player.y = 1700
-						player.vida -=1
+						player.vida -= 1
+						player.boost = 3000;
 						skill.timeLeft = 0
 						break;
 					}
@@ -308,7 +374,6 @@ function salaDisconnect(sala, nome){
 			io.to(salas[sala].sala).emit('oponentDisconnect')
 			salas[sala].gameStatus = 0
 		} else {
-			console.log('server preGameDisc')
 			io.to(salas[sala].sala).emit('preGameDisconnect')
 		}
 	}
@@ -318,8 +383,12 @@ function trocarTimes(jogo){
 	for(index=0; index<ROOM_SIZE; index++){
 		if(jogo.jogadores[index].time === 'killer'){
 			jogo.jogadores[index].time = 'survivor'
+			jogo.jogadores[index].x = SPAWN_POINT.x2
+			jogo.jogadores[index].y = SPAWN_POINT.y2
 		} else {
 			jogo.jogadores[index].time = 'killer'
+			jogo.jogadores[index].x = SPAWN_POINT.x1
+			jogo.jogadores[index].y = SPAWN_POINT.y1
 		}
 	}
 }
@@ -415,17 +484,22 @@ async function main(){
 					sala: data.sala,
 					time: 'killer',
 					skillColdown: 0,
-					x: 1500,
-					y: 1700,
+					x: SPAWN_POINT.x1,
+					y: SPAWN_POINT.y1,
 					vida: 2,
 					pontos: 0,
+					boost: 0,
 				}
 				if(salas[data.sala].jogadores.length > 0) {
 					if(salas[data.sala].jogadores[0].time === 'killer'){
 						player.time = 'survivor'
+						player.x = SPAWN_POINT.x2
+						player.y = SPAWN_POINT.y2
 					}
 					if(salas[data.sala].jogadores[0].time === 'survivor'){
 						player.time = 'killer'
+						player.x = SPAWN_POINT.x1
+						player.y = SPAWN_POINT.y1
 					}
 				}
 				salas[data.sala].jogadores.push(player)
@@ -434,7 +508,6 @@ async function main(){
 					io.to(salas[data.sala].sala).emit('oponentReady')
 					console.log('SALA', salas[data.sala].sala, 'PRONTA PARA INICIAR')
 				}
-				console.log('PLAYER OBJECT', player)
 				console.log('usuario '+data.nome+' entrou na sala '+data.sala)
 			} else {
 				clientSocket.emit('salaCheia')

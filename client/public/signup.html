@@ -9,7 +9,7 @@
     <style>
         *{box-sizing: border-box;}
         body{
-            background-color: #181616;
+            background-color: rgb(23, 40, 50);
             width: 100%;
             height: 100%;
         }
@@ -43,7 +43,7 @@
             width: 100%;
             height: 30px;
             cursor: pointer;
-            background-color: #181616;
+            background-color: rgb(23, 40, 50);
             color: white;
             border: 0;
             border-radius: 20px;
@@ -51,7 +51,7 @@
         }
 
         form input[type=submit]:hover{
-            background-color: #3A3636;
+            background-color: rgb(36, 60, 74);
         }
 
         a{
@@ -85,7 +85,11 @@
             let username = document.getElementById('username').value;
             let email = document.getElementById('email').value;
             let senha = document.getElementById('senha').value;
-            serverSocket.emit('criarConta', {username: username, email:email, senha:senha})
+            if(username === '' || email === '' || senha === ''){
+                
+            } else{
+                serverSocket.emit('criarConta', {username: username, email:email, senha:senha})
+            }
         }
 
         serverSocket.on('cadastroSucesso', () => {
