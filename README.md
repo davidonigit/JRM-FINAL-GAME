@@ -34,23 +34,29 @@ Com o cadastro realizado, faça login com a conta criada.
 
 Com o login concluído, você terá acesso ao Game Lobby. Nele é possível visualizar os players online, interagir com eles num chat global, criar uma sala e entrar em salas criadas pelos jogadores.
 
+![imagem_2023-07-09_172626835](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/79ecaf72-2cf6-45d4-8ea5-3d5e41347eb4)
+
 Crie sua sala e aguarde outro player se conectar nela. Ao atingir 2 players na sala, o criador pode iniciar a partida.
 
 ## JOGABILIDADE
 
 ## Ambos os times:
 
-- Controlar o personagem: movimentação padrão com W A S D (cima, esquerda, baixo, direita, respectivamente)
+- **Movimentação:** W A S D (cima, esquerda, baixo, direita, respectivamente)
 
 ## SURVIVOR:
 
-- Correr: SHIFT (manter pressionado)
-- Pular barricadas: E (possui 2 segundos de coldown)
+![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/554f01bf-5c2e-4db8-93e6-77e82658341a)
+
+- **Correr:** SHIFT (manter pressionado)
+- **Pular barricadas:** E (possui 2 segundos de coldown)
 - Ao ser atingido, recebe 150% de boost na velocidade, durante 3 segundos
 
 ## KILLER:
 
-- Arremessar machado: left click do mouse (possui 2 segundos de coldown)
+![image](https://github.com/davidonigit/JRM-FINAL-GAME/assets/93225780/dee970d8-4fea-4aff-b50f-45eacb698fb1)
+
+- **Arremessar machado:** left click do mouse (possui 2 segundos de coldown)
 
 ## REGRAS DO JOGO:
 
